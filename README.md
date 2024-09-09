@@ -22,3 +22,41 @@ Follow these instructions to set up and run the app locally on your machine.
 # Prerequisites
 Node.js (v14.x or higher)
 npm (Node Package Manager)
+
+# Installation
+## 1.Clone the repository:
+```
+git clone https://github.com/your-username/short-video-meeting-app.git
+cd short-video-meeting-app
+```
+## 2.Install dependencies:
+```
+npm install
+```
+## 3.Run the Server:
+```
+npm start
+```
+# Folder Structure
+```
+├── public          # Static files (CSS, client-side JS)
+├── routes          # Application routes
+├── views           # EJS templates (HTML views)
+├── server.js       # Main server entry point
+└── README.md       # Project documentation
+```
+# 💡 Usage
+### Start the server using npm start.
+-->Open the browser and navigate to http://localhost:3000.
+-->Enter a room name or create a new one, and share the room ID with participants to start the video call.
+-->Use the real-time chat feature during your video conference.
+# 🤝 Contributing
+Feel free to submit issues or pull requests! If you have suggestions or improvements, please let us know.
+
+** You an freely contribute openly or use this app for your kind use **
+
+
+
+
+
+
