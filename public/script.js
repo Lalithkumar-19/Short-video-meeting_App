@@ -34,7 +34,7 @@ navigator.mediaDevices
       if (e.which == 13 && text.val() != "") {
         socket.emit("message", {
           msg: text.val(),
-          name: localStorage.getItem("name"),
+          name: localStorage.getItem("name")||"User",
         });
         text.val("");
       }
