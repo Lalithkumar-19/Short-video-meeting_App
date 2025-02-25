@@ -6,7 +6,7 @@ myVideo.muted = true;
 var peer = new Peer();
 const peers = {};
 
-let myvideoSteam;
+let myvideoStream;
 
 navigator.mediaDevices
   .getUserMedia({
@@ -14,31 +14,35 @@ navigator.mediaDevices
     audio: true,
   })
   .then((stream) => {
-    myvideoSteam = stream;
-    addVideoStream(myVideo, stream);
+    myvideoStream = stream;
+    addVideoStream(myVideo, stream, "me");
+
     peer.on("call", (call) => {
       call.answer(stream);
       const video = document.createElement("video");
       call.on("stream", (userVideoStream) => {
-        addVideoStream(video, userVideoStream);
+        addVideoStream(video, userVideoStream, call.peer);
       });
     });
 
     socket.on("user-connected", (userID) => {
-      connecTONewUser(userID, stream);
+      connectToNewUser(userID, stream);
     });
 
     let text = $("input");
     $("html").keydown((e) => {
       if (e.which == 13 && text.val() != "") {
-        socket.emit("message", {msg:text.val(),name:localStorage.getItem("name")});
+        socket.emit("message", {
+          msg: text.val(),
+          name: localStorage.getItem("name"),
+        });
         text.val("");
       }
     });
 
     socket.on("createMessage", (obj) => {
-        const {msg,name}=obj;
-      $("ul").append(`<li class="message"><b>${name}</b/><br/>${msg}</li>`);
+      const { msg, name } = obj;
+      $("ul").append(`<li class="message"><b>${name}</b><br/>${msg}</li>`);
       scrollToBottom();
     });
   })
@@ -46,25 +50,24 @@ navigator.mediaDevices
 
 socket.on("user-disconnected", (userId) => {
   if (peers[userId]) peers[userId].close();
+
+  // Remove the corresponding video element
+  const videoElement = document.querySelector(`[data-peer="${userId}"]`);
+  if (videoElement) {
+    videoElement.remove();
+  }
 });
-
-
-
-
 
 peer.on("open", (id) => {
   console.log(id);
   socket.emit("join-room", ROOM_ID, id);
 });
 
-
-
-
-const connecTONewUser = (userID, stream) => {
+const connectToNewUser = (userID, stream) => {
   const call = peer.call(userID, stream);
   const video = document.createElement("video");
   call.on("stream", (userVideoStream) => {
-    addVideoStream(video, userVideoStream);
+    addVideoStream(video, userVideoStream, userID);
   });
   call.on("close", () => {
     video.remove();
@@ -72,113 +75,89 @@ const connecTONewUser = (userID, stream) => {
   peers[userID] = call;
 };
 
-
-
-
-const addVideoStream = (video, stream) => {
+const addVideoStream = (video, stream, userId) => {
   video.srcObject = stream;
+  video.setAttribute("data-peer", userId); // Assign user ID for easy removal
   video.addEventListener("loadedmetadata", () => {
     video.play();
   });
   videoGrid.append(video);
 };
 
-
-
- const scrollToBottom = () => {
-        var d = $(".main__chat_window");
-        d.scrollTop(d.prop("scrollHeight"));
- };
-
-
-
-
+const scrollToBottom = () => {
+  var d = $(".main__chat_window");
+  d.scrollTop(d.prop("scrollHeight"));
+};
 
 const muteUnmute = () => {
-  const enabled = myvideoSteam.getAudioTracks()[0].enabled;
+  const enabled = myvideoStream.getAudioTracks()[0].enabled;
   if (enabled) {
-    myvideoSteam.getAudioTracks()[0].enabled = false;
+    myvideoStream.getAudioTracks()[0].enabled = false;
     setUnmuteButton();
   } else {
     setMuteButton();
-    myvideoSteam.getAudioTracks()[0].enabled = true;
+    myvideoStream.getAudioTracks()[0].enabled = true;
   }
 };
 
-
-
-
 const playStop = () => {
-  let enabled = myvideoSteam.getVideoTracks()[0].enabled;
+  let enabled = myvideoStream.getVideoTracks()[0].enabled;
   if (enabled) {
-    myvideoSteam.getVideoTracks()[0].enabled = false;
+    myvideoStream.getVideoTracks()[0].enabled = false;
     setPlayVideo();
   } else {
     setStopVideo();
-    myvideoSteam.getVideoTracks()[0].enabled = true;
+    myvideoStream.getVideoTracks()[0].enabled = true;
   }
 };
 
-
-
-
-
 const setMuteButton = () => {
-  const html = `<i class="fas fa-microphone"></i>
+  document.querySelector(".main__mute_button").innerHTML = `
+    <i class="fas fa-microphone"></i>
     <span>Mute</span>`;
-  document.querySelector(".main__mute_button").innerHTML = html;
 };
-
-
-
 
 const setUnmuteButton = () => {
-  const html = `
+  document.querySelector(".main__mute_button").innerHTML = `
     <i class="unmute fas fa-microphone-slash"></i>
-    <span>Unmute</span>
-  `;
-  document.querySelector(".main__mute_button").innerHTML = html;
+    <span>Unmute</span>`;
 };
 
-
-
-
 const setPlayVideo = () => {
-  const html = `
+  document.querySelector(".main__video_button").innerHTML = `
     <i class="stop fas fa-video-slash"></i>
-      <span>Play Video</span>
-    `;
-  document.querySelector(".main__video_button").innerHTML = html;
+    <span>Play Video</span>`;
 };
 
 const setStopVideo = () => {
-  const html = `
-      <i class="fas fa-video"></i>
-      <span>Stop Video</span>
-    `;
-  document.querySelector(".main__video_button").innerHTML = html;
+  document.querySelector(".main__video_button").innerHTML = `
+    <i class="fas fa-video"></i>
+    <span>Stop Video</span>`;
 };
 
-
-
-
 const Show_Hide_chat = () => {
-    const chat = $(".main__right"); 
-    const right = $(".main__left");
+  const chat = $(".main__right");
+  const right = $(".main__left");
 
-    if (chat.is(":visible")) {      
-        chat.hide();      
-        right.css("flex", 1);  // Expand the left section to full width when chat is hidden
-    } else {
-        chat.show();                 
-        right.css("flex", 0.8);   // Reset to the original width when chat is shown again
-    }
-}
+  if (chat.is(":visible")) {
+    chat.hide();
+    right.css("flex", 1);
+  } else {
+    chat.show();
+    right.css("flex", 0.8);
+  }
+};
 
+const LeaveMeeting = () => {
+  // Close peer connections
+  Object.values(peers).forEach((peer) => peer.close());
 
+  // Stop all video and audio tracks
+  myvideoStream.getTracks().forEach((track) => track.stop());
 
-const LeaveMeeting=()=>{
-    myVideo.remove();
-    window.location.href = "/";
+  // Remove video element
+  myVideo.remove();
 
-}
+  // Redirect to home
+  window.location.href = "/";
+};
